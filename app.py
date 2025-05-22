@@ -9,9 +9,15 @@ import boto3
 from awscrt import auth, io, mqtt
 from awscrt.exceptions import AwsCrtError
 from awsiot import mqtt_connection_builder
-from flask import Flask, app, jsonify, render_template
+from flask import Flask, app, Response, jsonify, render_template, stream_with_context
 
-app = Flask(__name__)
+app = Flask(
+    __name__,
+    static_folder="static",
+    template_folder="templates"
+)
+
+latest_message = None
 
 refresh_token = "eyJjdHkiOiJKV1QiLCJlbmMiOiJBMjU2R0NNIiwiYWxnIjoiUlNBLU9BRVAifQ.bzBsNc_xZotEaKiVvRuKuBgf4-Y1imOicaAclK1VI78m5QrS1i5KAU1wxpmM0L0iSR59VsX844ThS2rUyrq7isXzFO0X4pi-IksihbwASmE3h15iHKgTf0YJEMfG8xRm65R5E5GmCiXp2vXDJ_K_LN0HXWrc_igfDVZCXCGVdHRZ_wsYKDmtXpgvLTug05omz0KIvQGVMukntWmk5GGvLd98CitHTXCJ_QhB5s5eN4jcrzg0UrVOejoVEQ1qYfuA8cVU532CXvRDuyC8BfjzG20qo7CGrCjNXsQwe6wCrbIcO_RzPxqAYUynnuap9LhvpRhm-k63U0pcMWTLQ1-klA.Wt0k-2VjKDK_vXZS.m04d3Js4_0vXaCmyROUQZ7FfVFB9hKBUrqe2CHRjWjLb3VAdVuvLSzQELsipBpyBtoRkYwFpI6QFjAhR-YXh5aEvWZ_IYciIGuHBd8_mTTvRCQDY40BSDIVWqUPq4NLbAHDTvMaWpuPdPO76XTPiu80B5dvs9xCSTOKs1_7_NdMncevFAKpGDEoooUH26bX8hr7eE1GoWf4dDpOhtpHe2ME_W_0hHETQmiTamUVK8mBEDm-CNBvkVrYNl7qmgabAUTDnaF8RHuWAlCbsSzSJ6riBIrX2lJh4uxFywkGeurL4u8XNA-aXzPb81bXO11MW76zzfECA9NEKL-wWZ5r4z2QBnMhH0R7cNMDned39Ynrm9IVA6WcIuXp3oCfEEcCfvQxrL5uY1FIta7hvjoGrtkpZkO72WA0or2JlLzzUyRH1BzRflCWDIkbYb1l4AtrLlD6VurWLwm5PtOeHRVpMPVoGfj0CPqWvTRPjS5641qqjZlp6eXPevbJrHFt282orXA8NskrUiET4nTLdzTfRIogtyliH55TaoewlxRXF5xbaiIoN3qdmyvuvVIVpi48WdaIxYSW6AM1EvggrQK6P2DRrpavgM1_9bJl6S6voqEKnIEofpXf8jqKAz07NNzBmngE1T5DozSEaXp9BrPaFXpQwb4JDSnN5kbw0PVDW_FFuU_AtwjPpuw9dYgH2GGu9Ec8hOzaimRw2-yRgYJDRexsmcpI0l66LYybVNV-6U_stR1LkoRFBKUwOJWaDJ26eA2oQmD-I5A_3_-2MbFXV8guz5wBsMS1SGJ9WreXdMk1x6Mb4S9C2audDNo7zeJM8ziVfIQWk2r1iJzdXonztW_V_Io0yCUnUy7-V9ln_Zpj9fcrKxRmpO7S8I5bkvIJfo2PbW24F3Rnxfy0wSzM_gfnw4pdncaZi7iJNMStAqBQsEgp3opVyigaghzuFLkn4hUw6h0fVt0DrIZt-x1uduEuemBPV2KAWmQYwiot-wYKMTSJGOAznQnfxPqA7P0wjiofW9sOGVi9FXfwONGlPdLRtkvHGt4oKopmzMBa0N1r0-fArvp8678OBk_i15Dpoa2PB0lqgvcW73yN-8HXFLVvFrg7nKa-nAR7u2JeaO0Q8DH64RXxCfURNn1KKNfUYZ1cd9zGGkA48cz9yyC9iw0aZlN0tb__j5snEtmE2MnqmVDPSCMqWbU4R-sBkev8dMouPdDjtjJ4z-Io5ZVCXA7p73npwXQv3NNMV-cmpOresWx0VpH3jvEwt4kqwVUc1XTmS_vhHPsZjbGQEXwi1CT72jSaNTWJ-aYzheUW-uImxzFXBeAGfIkihcpA2qYarJYQS27J8AMEzng.XVct4qy8IJwy-VtsNNeRPQ"
 region = "ap-northeast-1"
@@ -153,7 +159,8 @@ mqtt_listener.start()
 
 @app.route('/')
 def index():
-    return render_template('index.html')  # optional UI
+    # simply renders templates/index.html
+    return render_template('index.html')
 
 @app.route('/message')
 def get_message():
@@ -162,6 +169,20 @@ def get_message():
         return jsonify(latest_message)
     else:
         return jsonify({'error': 'No data yet'}), 204
+@app.route('/stream')
+def stream():
+    def event_stream():
+        last = None
+        while True:
+            if latest_message is not None and latest_message != last:
+                # push the full JSON payload
+                yield f"data: {json.dumps(latest_message)}\n\n"
+                last = latest_message
+            time.sleep(0.2)  # check 5×/sec
+    return Response(
+        stream_with_context(event_stream()),
+        mimetype='text/event-stream'
+    )
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5500)

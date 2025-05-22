@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Live Data Dashboard - RG Hackathon</title>
+
+  <!-- Bootstrap CSS -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+
+  <!-- Custom CSS -->
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='style_trial.css') }}"
+  />
+</head>
+<body class="bg-light">
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+      <a class="navbar-brand" href="#">Live Data Tracker</a>
+    </div>
+  </nav>
+
+  <header class="py-5 text-center bg-white shadow-sm mb-4">
+    <div class="container">
+      <h1 class="display-4">RG Hackathon Dashboard</h1>
+      <p class="lead text-muted">Real-time traffic-light insights</p>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="row g-4">
+      <!-- Last Update Card -->
+      <div class="col-md-6">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">Last Update</h5>
+            <p id="last-update" class="card-text fs-5 text-primary">Loading…</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Current Signal Card -->
+      <div class="col-md-6">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">Current Signal</h5>
+            <p id="traffic-light" class="card-text fs-5">Loading…</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="bg-dark text-white py-3 mt-5">
+    <div class="container text-center">
+      &copy; 2025 RG Hackathon | Live Data Tracker
+    </div>
+  </footer>
+
+  <!-- JS -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
